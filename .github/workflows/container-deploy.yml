@@ -1,0 +1,65 @@
+name: Build & Deploy Container to Azure Web App - udacitycms
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: <your-acr-name>                  # e.g., myteamacr
+  ACR_LOGIN_SERVER: <your-acr-name>.azurecr.io
+  WEBAPP_NAME: udacitycms                    # your existing Web App
+  IMAGE_NAME: udacitycms                     # repository name in ACR
+  # Optional: fix Python at build if needed
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # for OIDC to Azure
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure ACR permission for Web App (one-time; safe to run again)
+        run: |
+          # Assign 'AcrPull' to the Web App's system identity so it can pull from ACR
+          WEBAPP_ID=$(az webapp show -n $WEBAPP_NAME -g <your-resource-group> --query identity.principalId -o tsv)
+          az role assignment create --assignee $WEBAPP_ID \
+            --role "AcrPull" \
+            --scope $(az acr show -n $ACR_NAME --query id -o tsv) || true
+
+      - name: ACR login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build & push image
+        run: |
+          GIT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_TAG="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${GIT_SHA}"
+          LATEST_TAG="${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest"
+
+          docker build \
+            --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
+            -t "${IMAGE_TAG}" \
+            -t "${LATEST_TAG}" \
+            .
+
+          docker push "${IMAGE_TAG}"
+          docker push "${LATEST_TAG}"
+
+      - name: Configure Web App to use container image
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          images: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
