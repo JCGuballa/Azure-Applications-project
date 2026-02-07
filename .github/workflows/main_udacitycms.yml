@@ -1,4 +1,4 @@
-name: Deploy to Azure App Service (Python)
+name: Deploy to Azure App Service (Python - TEMP hardcoded SPN)
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -17,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -28,13 +27,19 @@ jobs:
           pip cache purge
           pip install -r requirements.txt
 
-      - name: Azure Login (OIDC)
+      # ========= TEMP: Hardcoded Service Principal credentials =========
+      # Replace with GitHub Secrets ASAP after a successful deploy.
+      - name: Azure Login (Service Principal)
         uses: azure/login@v2
         with:
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          auth-type: SERVICE_PRINCIPAL
+          client-id: 6419c6e7-213c-4a8e-be29-d739687b703e
+          tenant-id: f95e84a-92b8-439f-a62d-4f45996b6d07
+          client-secret: 4448Q~79L8Lh_BHKQQv-oDjmnwGPnGSW7mNJAbHL
+          subscription-id: d00ea796-785a-4170-badd-fe9a77ce336e
+      # =================================================================
 
+      # Deploy code (non-container) to App Service; Oryx performs build on Azure
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
