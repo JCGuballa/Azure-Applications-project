@@ -1,4 +1,4 @@
-name: Deploy to Azure App Service (Python - TEMP hardcoded SPN creds JSON)
+name: Deploy to Azure App Service (Python - Publish Profile)
 
 on:
   push:
@@ -21,36 +21,16 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Upgrade pip and verify requirements resolve
+      - name: Verify dependencies resolve
         run: |
           python -m pip install --upgrade pip
           pip cache purge
           pip install -r requirements.txt
 
-      # ========= TEMP: Hardcoded Service Principal credentials (JSON) =========
-      # Replace this inline JSON with GitHub Secrets ASAP after a successful deploy.
-      - name: Azure Login (Service Principal JSON creds)
-        uses: azure/login@v2
-        with:
-          auth-type: SERVICE_PRINCIPAL
-          creds: >
-            {
-              "clientId": "6419c6e7-213c-4a8e-be29-d739687b703e",
-              "clientSecret": "4448Q~79L8Lh_BHKQQv-oDjmnwGPnGSW7mNJAbHL",
-              "subscriptionId": "d00ea796-785a-4170-badd-fe9a77ce336e",
-              "tenantId": "f95e84a-92b8-439f-a62d-4f45996b6d07",
-              "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
-              "resourceManagerEndpointUrl": "https://management.azure.com/",
-              "activeDirectoryGraphResourceId": "https://graph.windows.net/",
-              "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
-              "galleryEndpointUrl": "https://gallery.azure.com/",
-              "managementEndpointUrl": "https://management.core.windows.net/"
-            }
-      # =======================================================================
-
-      # Deploy code (non-container) to App Service; Oryx performs build on Azure
+      # No azure/login step needed when using publish profile
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: "udacitycms"
           package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
