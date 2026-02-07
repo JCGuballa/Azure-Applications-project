@@ -1,4 +1,4 @@
-name: Deploy to Azure App Service (Python - TEMP hardcoded SPN)
+name: Deploy to Azure App Service (Python - TEMP hardcoded SPN creds JSON)
 
 on:
   push:
@@ -27,17 +27,26 @@ jobs:
           pip cache purge
           pip install -r requirements.txt
 
-      # ========= TEMP: Hardcoded Service Principal credentials =========
-      # Replace with GitHub Secrets ASAP after a successful deploy.
-      - name: Azure Login (Service Principal)
+      # ========= TEMP: Hardcoded Service Principal credentials (JSON) =========
+      # Replace this inline JSON with GitHub Secrets ASAP after a successful deploy.
+      - name: Azure Login (Service Principal JSON creds)
         uses: azure/login@v2
         with:
           auth-type: SERVICE_PRINCIPAL
-          client-id: 6419c6e7-213c-4a8e-be29-d739687b703e
-          tenant-id: f95e84a-92b8-439f-a62d-4f45996b6d07
-          client-secret: 4448Q~79L8Lh_BHKQQv-oDjmnwGPnGSW7mNJAbHL
-          subscription-id: d00ea796-785a-4170-badd-fe9a77ce336e
-      # =================================================================
+          creds: >
+            {
+              "clientId": "6419c6e7-213c-4a8e-be29-d739687b703e",
+              "clientSecret": "4448Q~79L8Lh_BHKQQv-oDjmnwGPnGSW7mNJAbHL",
+              "subscriptionId": "d00ea796-785a-4170-badd-fe9a77ce336e",
+              "tenantId": "f95e84a-92b8-439f-a62d-4f45996b6d07",
+              "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+              "resourceManagerEndpointUrl": "https://management.azure.com/",
+              "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+              "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+              "galleryEndpointUrl": "https://gallery.azure.com/",
+              "managementEndpointUrl": "https://management.core.windows.net/"
+            }
+      # =======================================================================
 
       # Deploy code (non-container) to App Service; Oryx performs build on Azure
       - name: Deploy to Azure Web App
